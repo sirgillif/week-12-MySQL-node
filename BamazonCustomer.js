@@ -39,8 +39,43 @@ function start() {
 	});
 }
 
+function checkPrice(prdtNum,prdtquant) {
+	var totalPrice = 0;
+	var query = "SELECT products.* FROM products WHERE products.ItemId =" + prdtNum;
+	connection.query(query, function (err, res) {
+		if (err) throw err;
+		totalPrice = res[0].Price * prdtquant;
+		inquirer.prompt([
+			{
+				type: 'confirm',
+				name: 'okPrice',
+				message: '$' + totalPrice + ' is your total. Is that okay?',
+			}
+		]).then(function (answer) {
+			console.log(answer.okPrice)
+			if(answer.okPrice){
+				buyItem(prdtNum,res[0].StockQuantity,prdtquant,totalPrice);
+			}
+			else{
+				console.log("Thank you for looking.")
+				start()
+			}
+
+		});
+	});
+}
+function buyItem(prdtNum,inStock,productPurchased,price) {
+	var query = "UPDATE `bamazon`.`products` SET `StockQuantity` = ? WHERE `ItemId` =?;";
+	var diff= inStock-productPurchased;
+	connection.query(query,[diff,prdtNum], function (err, res) {
+		console.log("Your purchase has been placed!\nYour order came to $"+price);
+	});
+}
+
+var inquirer=require('inquirer');
+
 function questions() {
-	var inquirer=require('inquirer');
+
 
 	// for(var i=0;i<idList.length;i++) {
 	// 	console.log(idList[i]);
@@ -77,9 +112,11 @@ function questions() {
 			if(answer.quantRequest<=res[0].StockQuantity)
 			{
 				console.log("buy it")
+				checkPrice(answer.product,answer.quantRequest);
 			}
 			else{
-				console.log("cant buy it");
+				console.log("Insufficient quantity of that product!");
+				start();
 			}
 
 		});
